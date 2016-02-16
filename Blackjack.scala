@@ -1,19 +1,27 @@
 object Blackjack {
-  //Function for a new round of Black jack
-  def newRound(gamblers :scala.collection.mutable.ArrayBuffer[Player]) =
+   //Function to pick a random card
+  def turn(s :member,x:Int)
+  {
+    for(i<-1 to x)
+    {
+    var pick=Deck.randomPick()
+    println(s.getClass.getSimpleName+"'s card:"+pick("Symbol")+"-"+pick("Card"))
+    s.addtoCount(Deck.sequence(pick("Card")))
+    }
+  }
+   //Function for a new round of Black jack
+  def newRound(gamblers :scala.collection.mutable.ArrayBuffer[Player],dealer :Dealer) =
   {
     println("Here we go ! Good luck !")
-    var dealerCount=0
     var playerChoice=true
     // Initial cards for the players and the Dealer
     for(h<-0 to gamblers.size-1;if(gamblers(h).active==true))
     {
       println("Player "+h+" | Your cards are:")    
-      playerTurn(gamblers(h))
-      playerTurn(gamblers(h))
+      turn(gamblers(h),2)
     }
     println("Dealers cards are :")
-    dealerTurn()
+    turn(dealer,1)    
     println('X')
     // Upon a nod from the user to continue a new card is retrieved !
     for(u<-0 to gamblers.size-1;if(gamblers(u).active==true))
@@ -25,71 +33,42 @@ object Blackjack {
         var choice=readLine()
         if(choice=="Y") {
           println("New card is:")
-          playerTurn(gamblers(u))
+          turn(gamblers(u),1)
           }
         else playerChoice=false;
       }
-      gamblers(u).playerCount=gamblers(u).playerCounts.last
     }
     // Dealer's turn 
     println("Dealers next cards are")
-    while(dealerCount<17) dealerTurn()
+    while(dealer.Count<17) turn(dealer,1)
     
     for(p<-0 to gamblers.size-1;if(gamblers(p).active==true)) profits(gamblers(p))
     
     // Function that determines the net profit obtained by User for this round
     def profits(playerProfit :Player){
-      if(dealerCount>21)
+      if(dealer.Count>21)
       {
-        if(playerProfit.playerCount<=21) playerProfit.remaining+=playerProfit.roundBet
-      }
+        if(playerProfit.Count<=21) playerProfit.remaining+=playerProfit.roundBet
+      }      
       else
       {
-         if(playerProfit.playerCount>21) playerProfit.remaining-=playerProfit.roundBet
+         if(playerProfit.Count>21) playerProfit.remaining-=playerProfit.roundBet
          else
          {
-           if(dealerCount>playerProfit.playerCount) playerProfit.remaining-=playerProfit.roundBet
-           else if(dealerCount<playerProfit.playerCount) playerProfit.remaining+=playerProfit.roundBet 
+           if(dealer.Count>playerProfit.Count) playerProfit.remaining-=playerProfit.roundBet
+           else if(dealer.Count<playerProfit.Count) playerProfit.remaining+=playerProfit.roundBet 
            else playerProfit.remaining+=0
          }
       }
     }
-    // Player and Dealer functions for retrieving a new card 
-    
-    def playerTurn(member :Player){
-      var value=Deck.randomPick()
-      value match
-      {
-        case x if(x>=0 && x<11) =>member.playerCounts=member.playerCounts map {_+x};println(x)
-        case 74 => member.playerCounts=member.playerCounts map {_+10};println('J')
-        case 81 => member.playerCounts=member.playerCounts map {_+10};println('Q')
-        case 75 =>  member.playerCounts=member.playerCounts map {_+10};println('K')
-        case 65 => member.playerCounts=member.playerCounts map {_+1};
-                   member.playerCounts=member.playerCounts++(member.playerCounts map {_+10});
-                   for(h<-member.playerCounts;if(h>21)) {member.playerCounts-=h};
-                   println('A')
-      }
-    }
-    
-    def dealerTurn(){
-      var value=Deck.randomPick()
-      value match
-      {
-        case x if(x>=0 && x<11) => dealerCount+=x;println(x)
-        case 74 => dealerCount+=10;println('J')
-        case 81 => dealerCount+=10;println('Q')
-        case 75 => dealerCount+=10;println('K')
-        case 65 => dealerCount+=11;println('A')
-      }
-    }
-    println("Remaining amount after this round ")
-
+    // Round conclusion 
+    println("-------Remaining amount after this round--------- ")
     for(p<-0 to gamblers.size-1;if(gamblers(p).active==true)) 
       {
       println("Player "+p+": "+gamblers(p).remaining)
       gamblers(p).refresh()         
       }
-    
+    dealer.refresh()
   }
   
   
@@ -98,6 +77,7 @@ object Blackjack {
   {
      println("Welcome to the GreenFinch BlackJack Deck!")
      var players = scala.collection.mutable.ArrayBuffer.empty[Player]
+     var deal=new Dealer()
      println("How many are you game today ?")
      var num=readLine().toInt
      // Players total Amount
@@ -126,11 +106,7 @@ object Blackjack {
            println("Place a bet to start a new Round !")
            var betforNewRound=readLine().toInt
            if(betforNewRound<=players(i).remaining)
-           {
              players(i).roundBet=betforNewRound
-             //f.remaining+=newRound(betforNewRound);
-             //if(f.remaining<0) game=false
-           }
            else
             println("You dont have "+ betforNewRound +" in your account ")
          }
@@ -140,37 +116,46 @@ object Blackjack {
            println("Player"+i+": U r leaving our deck with "+players(i).remaining + " dollars")
          }
        }
-       newRound(players);       
-         
+       if(gameOn==true) newRound(players,deal)       
      }
       
   }  
    
 }
-
+// Updated Deck and classes 
 object Deck{
-  val sequence=List(2,3,4,5,6,7,8,9,10,'J','Q','K','A')
-  val set= for(i<-sequence;k<-1 to 4) yield(i)
+  val sequence=Map('2'->2,"3"->3,"4"->4,"5"->5,"6"->6,"7"->7,"8"->8,"9"->9,"10"->10,"J"->10,"Q"->10,"K"->10,"A"->11)
+  val set=Map("Diamond"->sequence,"Spade"->sequence,"Club"->sequence,"Heart"->sequence)
   def randomPick()=
   {
     val random = scala.util.Random
-    sequence(random.nextInt(sequence.size))
+    Map("Symbol"->set.keys.toVector(random.nextInt(set.size)),
+        "Card"->sequence.keys.toVector(random.nextInt(sequence.size)))
   }
 }
-class Player(var totalBet:Int)
+class Player(var totalBet:Int) extends member
 {
    var active=true
    var roundBet=0
-   var playerCounts = scala.collection.mutable.ArrayBuffer.empty[Int]
-   playerCounts+=0
-   var playerCount=0
+   var Count=0
    var remaining=totalBet
    def refresh()
    {
      if(this.remaining<=0) this.active==false
-     this.playerCounts.reduceToSize(0)
-     this.playerCounts+=0
-     this.playerCount=0
+     this.Count=0
      this.roundBet=0   
    }
+   override def addtoCount(d:Int)=this.Count+=d
+ 
+}
+class Dealer() extends member
+{
+  var Count=0
+  override def addtoCount(d:Int)=this.Count+=d
+  def refresh()=this.Count=0 
+}
+
+class member
+{
+  def addtoCount(k:Int)={}
 }
